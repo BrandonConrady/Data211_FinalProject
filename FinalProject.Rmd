@@ -1,0 +1,68 @@
+---
+title: "DATA 211 Final Project"
+author: "Brandon Conrady"
+date: "4/19/2022"
+output: rmarkdown::github_document
+---
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+
+# Welcome to my final project.
+# I am a cashier at Home Depot.
+# I want to see if there is a difference in the transactions made at Self Checkouts (SCO) and regular registers (Mainline).
+# I will be looking at some figures I collected to test this.
+
+# The dataset is called "Transactions", and contains 817 entries.
+# Listed are the date of the transaction, day of week, register, SCO_Flag, and total for transaction.
+# SCO_Flag denotes "SCO" for SCO, and "Mainline" for all other transactions
+
+```{r}
+summary(Transactions)
+```
+
+# To get the full picture of the data we're working with, lets view the number of entries sorted by Register and SCO_Flag.
+
+```{r}
+Transactions %>%
+  group_by(Register) %>%
+  summarize(count = n())
+
+Transactions %>%
+  group_by(SCO_Flag) %>%
+  summarize(count = n())
+```
+
+# As we can see, there are almost triple the number of SCO transactions than all other types combined.
+
+# Next I will view the ranges of Total values sorted by Register and SCO_Flag.
+
+```{r}
+Transactions %>%
+  group_by(Register) %>%
+  summarize(aveTotal = mean(Total), seTotal = sd(Total)/sqrt(length(Total)), tstar = qt(1-0.05/2, length(Total) - 1)) %>%
+  ggplot(aes(x = Register, y = aveTotal)) + geom_point() + geom_errorbar(aes(ymin = aveTotal - seTotal*tstar, ymax = aveTotal + seTotal*tstar))
+
+Transactions %>%
+  group_by(SCO_Flag) %>%
+  summarize(aveTotal = mean(Total), seTotal = sd(Total)/sqrt(length(Total)), tstar = qt(1-0.05/2, length(Total) - 1)) %>%
+  ggplot(aes(x = SCO_Flag, y = aveTotal)) + geom_point() + geom_errorbar(aes(ymin = aveTotal - seTotal*tstar, ymax = aveTotal + seTotal*tstar))
+```
+
+# As a consequence of having so many SCO entries, we can see its confidence interval is much smaller than the other types.
+# Based on the graph alone, we can see that there is indeed a signifiant difference between SCO and Mainline transactions.
+# However, to be safe, we will perform a t-test anyways to verify that.
+
+# The question I will attempt to answer: "Is the amount spent at a Self Checkout significantly less than the amount spent at a regular register by customers on average?"
+# Null hypothesis: mu(Mainline) = mu(SCO)
+# Alternative hypothesis: mu(Mainline) > mu(SCO)
+
+
+```{r}
+t.test(Total~SCO_Flag, data = Transactions, alternative = "greater")
+```
+
+# Based on the low p-value, we can reject the null hypothesis.
+# Furthermore, we can safely say there is evidence to back the claim that SCO transactions are significantly lower than Mainline transactions on average.
